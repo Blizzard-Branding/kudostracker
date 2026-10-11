@@ -35,8 +35,12 @@ async function db(method, path, body, prefer) {
   return data;
 }
 
+const hash = s => crypto.createHash('sha256').update(String(s)).digest();
+const matches = (got, want) => crypto.timingSafeEqual(hash(got || ''), hash(want));
+
 // Wraps a handler with method checks, configuration and passcode checks, and JSON errors.
-function route(handlers) {
+// `skipPasscode` is only for routes that return no group data (the keep-alive ping).
+function route(handlers, { skipPasscode = false } = {}) {
   return async (req, res) => {
     try {
       const handler = handlers[req.method];
@@ -44,10 +48,7 @@ function route(handlers) {
       const { url, key } = env();
       if (!url || !key) throw new HttpError(503, 'Supabase isn\'t connected to this Vercel project (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are missing).');
       const want = process.env.GROUP_PASSCODE;
-      if (want) {
-        const hash = s => crypto.createHash('sha256').update(String(s)).digest();
-        if (!crypto.timingSafeEqual(hash(req.headers['x-group-passcode'] || ''), hash(want))) throw new HttpError(401, 'Passcode required.');
-      }
+      if (want && !skipPasscode && !matches(req.headers['x-group-passcode'], want)) throw new HttpError(401, 'Passcode required.');
       res.status(200).json(await handler(req));
     } catch (e) {
       if (!e.status) console.error(e);
@@ -77,4 +78,4 @@ function toRow(a) {
   return row;
 }
 
-module.exports = { db, route, toApp, toRow, clean, HttpError, SETUP_HINT };
+module.exports = { db, route, matches, toApp, toRow, clean, HttpError, SETUP_HINT };

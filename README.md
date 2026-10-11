@@ -8,6 +8,7 @@ A web version of the **Networking Group KPI Tracker** spreadsheet (`Networking_G
 - `api/` holds Vercel functions that read and write the shared log in Supabase. The browser never talks to Supabase directly.
 - `supabase/schema.sql` creates the tables and loads the spreadsheet's data.
 - `networking_kpi_prototype_v1.html` redirects old links to the app.
+- `vercel.json` runs `/api/keepalive` once a day. Supabase pauses free projects after about a week without activity, and the group meets every two weeks. The ping returns no data, so it skips the group passcode. If you set `CRON_SECRET` in Vercel, only Vercel's cron can call it.
 
 If the database isn't reachable, the app still works, but entries are saved only in that person's browser, and a banner says so. Once the database is connected, the app offers to add those entries to the shared log.
 

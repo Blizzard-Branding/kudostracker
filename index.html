@@ -165,6 +165,18 @@ input::placeholder,textarea::placeholder{color:#7D879A}
 .readme li{margin-bottom:6px}
 .locked{background:linear-gradient(170deg,var(--teal-600) 0%,var(--teal-900) 100%);border:0;border-radius:var(--radius-lg);box-shadow:var(--shadow-card)}
 .locked .lead{color:#D5E7EA}
+.auth{max-width:520px}
+.toggle{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:0 0 22px;border:1px solid var(--rule);border-radius:999px}
+.toggle button{border:0;background:transparent;color:var(--ink-muted);padding:9px 12px;border-radius:999px;cursor:pointer;font-weight:600;font-size:.92rem}
+.toggle button.active{background:var(--white-50);color:var(--ink-dark)}
+.top-right{display:flex;align-items:center;gap:10px}
+.role{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.75rem;font-weight:600;letter-spacing:.02em;background:rgba(191,205,225,.1);color:var(--ink-soft)}
+.role.organizer{background:rgba(239,190,98,.16);color:var(--orange-300)}
+.acct{font-size:.85rem;color:var(--ink-muted)}.acct.on{color:var(--green-400)}
+.tbl select{padding:8px 10px;border:1px solid rgba(191,205,225,.2);border-radius:9px;background:var(--navy-900);color:var(--ink)}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px;min-width:240px}
+.tbl input.name{min-width:190px}
+.status{min-height:1.4em;margin:12px 0 0;font-size:.9rem;color:var(--green-400)}
 
 @media (max-width:860px){.grid,.admin-grid{grid-template-columns:1fr}}
 @media (max-width:560px){
@@ -180,7 +192,7 @@ input::placeholder,textarea::placeholder{color:#7D879A}
 </head>
 <body>
 <header class="top">
- <div class="wrap top-inner"><div class="brand"><span class="brand-name">Network Effect</span><span class="brand-sub">Kudos Tracker</span></div><span class="pill" id="mode" role="status"><span>Loading…</span></span></div>
+ <div class="wrap top-inner"><div class="brand"><span class="brand-name">Network Effect</span><span class="brand-sub">Kudos Tracker</span></div><div class="top-right"><span class="pill" id="mode" role="status"><span>Loading…</span></span><span id="who"></span></div></div>
  <nav class="wrap nav" id="nav" aria-label="Sections"></nav>
 </header>
 <div class="wrap" id="banner"></div>
@@ -189,14 +201,20 @@ input::placeholder,textarea::placeholder{color:#7D879A}
 <script>
 // Starting data is the Networking_Group_KPI_Kudos_Tracker_v3 spreadsheet, row for row.
 const SEED={"members":[{"name":"Aubrey Straub","goal":24},{"name":"Leo Blizzard","goal":24},{"name":"Brian Arao","goal":24},{"name":"Amy Menendez","goal":24},{"name":"Abby Little","goal":24},{"name":"Arend S","goal":24},{"name":"Maurissa","goal":24},{"name":"Kay","goal":24},{"name":"Mischa","goal":24}],"key":[{"type":"Referral Given","p1":5,"role1":"Referrer","p2":0,"role2":"Recipient","p3":0,"role3":"","description":"Passed a referral to another member — logs who it went to."},{"type":"One-on-One Meeting","p1":3,"role1":"Attendee","p2":3,"role2":"Attendee","p3":0,"role3":"","description":"Both people get credit for a completed 1:1."},{"type":"Meeting Attendance","p1":2,"role1":"Attendee","p2":2,"role2":"Attendee","p3":2,"role3":"Attendee","description":"Attended the group's regular meeting — log up to 3 people on one row."},{"type":"Visitor Brought","p1":8,"role1":"Inviter","p2":8,"role2":"Co-Inviter","p3":0,"role3":"","description":"Brought a guest/prospective member to a meeting."},{"type":"Testimonial Given","p1":4,"role1":"Giver","p2":0,"role2":"Recipient","p3":0,"role3":"","description":"Gave a testimonial for another member's business."},{"type":"Closed Business","p1":"Goal-based","role1":"Closer","p2":"% of Closer, see below","role2":"Referrer (bonus)","p3":0,"role3":"","description":"A referral turned into real business. Points are personalized: see the Closed Business Settings below — Closer earns points off THEIR annual goal x job size; Referrer gets a % bonus of that."},{"type":"Social Shoutout","p1":2,"role1":"Giver","p2":0,"role2":"Recipient","p3":0,"role3":"","description":"Public shoutout/mention on social media or LinkedIn."},{"type":"Connector Bonus","p1":4,"role1":"Connector","p2":0,"role2":"Connected: Person A","p3":0,"role3":"Connected: Person B","description":"Introduced two members to each other."},{"type":"Multi-Referral Streak","p1":6,"role1":"Member","p2":0,"role2":"","p3":0,"role3":"","description":"Gave referrals to 3+ different members in a single month."},{"type":"Recruited a New Member","p1":10,"role1":"Recruiter","p2":0,"role2":"New Member","p3":0,"role3":"","description":"Brought in an actual new paying/joining member (not just a visitor)."},{"type":"New Member Mentor","p1":4,"role1":"Mentor","p2":0,"role2":"New Member","p3":0,"role3":"","description":"Onboarded or showed the ropes to a newer member."},{"type":"Review Left","p1":3,"role1":"Reviewer","p2":0,"role2":"Reviewed","p3":0,"role3":"","description":"Wrote a review for a teammate's business."},{"type":"Cross-Promotion","p1":3,"role1":"Promoter","p2":0,"role2":"Featured Member","p3":0,"role3":"","description":"Featured another member on your own social media, newsletter, or email list."},{"type":"Feedback Given","p1":2,"role1":"Giver","p2":0,"role2":"Recipient","p3":0,"role3":"","description":"Gave real, useful feedback on someone's pitch, website, or marketing."},{"type":"Perfect Attendance Streak","p1":5,"role1":"Member","p2":0,"role2":"","p3":0,"role3":"","description":"No missed meetings across a full quarter."},{"type":"Meeting Role Volunteer","p1":2,"role1":"Volunteer","p2":2,"role2":"Co-Volunteer","p3":0,"role3":"","description":"Served as greeter, timekeeper, or ran a meeting segment."},{"type":"Hosted an Event","p1":8,"role1":"Host","p2":8,"role2":"Co-Host","p3":0,"role3":"","description":"Opened up their business for a mixer, lunch-and-learn, or open house."},{"type":"Big Ask Fulfilled","p1":3,"role1":"Helper","p2":0,"role2":"Requester","p3":0,"role3":"","description":"Answered someone's help request posted to the group."},{"type":"Spotlight/Presenter","p1":5,"role1":"Presenter","p2":0,"role2":"","p3":0,"role3":"","description":"Gave a deeper presentation on their own business to the group."},{"type":"Content Collab","p1":5,"role1":"Collaborator A","p2":5,"role2":"Collaborator B","p3":5,"role3":"Collaborator C","description":"Co-hosted a webinar or created content together."},{"type":"Story Share","p1":3,"role1":"Sharer","p2":0,"role2":"Featured Member","p3":0,"role3":"","description":"Shared a case study or success story that came from a group referral."},{"type":"Kudos","p1":0,"role1":"Giver (no points)","p2":1,"role2":"Receiver (gets the star)","p3":0,"role3":"","description":"Quick peer recognition — replaces the old Kudos Matrix tab."}],"multipliers":{"Small":0.5,"Medium":1,"Large":2},"refBonus":0.5,"activities":[{"id":"seed-2","date":"2026-08-24","type":"Referral Given","p1":"Aubrey Straub","p2":"Kay","p3":"","jobSize":"","notes":"Example row — Aubrey referred Kay to a potential client. Overwrite or delete this row.","value":"","seeded":true},{"id":"seed-3","date":"2026-08-27","type":"Closed Business","p1":"Mischa","p2":"Aubrey Straub","p3":"","jobSize":"Medium","notes":"Example row — Aubrey's referral turned into a portrait session. Overwrite or delete this row.","value":"","seeded":true},{"id":"seed-4","date":"2026-09-02","type":"One-on-One Meeting","p1":"Aubrey Straub","p2":"Abby Little","p3":"Maurissa","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-5","date":"2026-09-03","type":"One-on-One Meeting","p1":"Aubrey Straub","p2":"Kay","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-6","date":"2026-09-04","type":"One-on-One Meeting","p1":"Aubrey Straub","p2":"Mischa","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-7","date":"2026-09-02","type":"Meeting Attendance","p1":"Aubrey Straub","p2":"Leo Blizzard","p3":"Brian Arao","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-8","date":"2026-09-02","type":"Meeting Attendance","p1":"Amy Menendez","p2":"Abby Little","p3":"Maurissa","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-9","date":"2026-09-02","type":"Meeting Attendance","p1":"Mischa","p2":"Kay","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-10","date":"2026-09-02","type":"Meeting Role Volunteer","p1":"Abby Little","p2":"Aubrey Straub","p3":"","jobSize":"","notes":"Lunch duties and Convener","value":"","seeded":true},{"id":"seed-11","date":"2026-09-02","type":"Hosted an Event","p1":"Amy Menendez","p2":"","p3":"","jobSize":"","notes":"Venue","value":"","seeded":true},{"id":"seed-12","date":"2026-09-16","type":"Referral Given","p1":"Amy Menendez","p2":"Kay","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-13","date":"2026-09-16","type":"Closed Business","p1":"Kay","p2":"Amy Menendez","p3":"","jobSize":"Small","notes":"Work on Amy's house","value":"","seeded":true},{"id":"seed-14","date":"2026-09-16","type":"Referral Given","p1":"Abby Little","p2":"","p3":"","jobSize":"","notes":"Referred business to Mari","value":"","seeded":true,"r1":"Referrer"},{"id":"seed-15","date":"2026-09-16","type":"Referral Given","p1":"Aubrey Straub","p2":"Leo Blizzard","p3":"","jobSize":"","notes":"","value":"","seeded":true,"r1":"Referrer","r2":"Referree"},{"id":"seed-16","date":"2026-09-16","type":"Closed Business","p1":"Aubrey Straub","p2":"Leo Blizzard","p3":"","jobSize":"Small","notes":"Book cover design","value":"","seeded":true,"r1":"Referrer (bonus)","r2":"Closer"},{"id":"seed-17","date":"2026-09-16","type":"Referral Given","p1":"Abby Little","p2":"Maurissa","p3":"","jobSize":"Small","notes":"SIMPLE IRA set-up","value":"","seeded":true},{"id":"seed-18","date":"2026-09-16","type":"One-on-One Meeting","p1":"Mischa","p2":"Kay","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-19","date":"2026-09-16","type":"One-on-One Meeting","p1":"Aubrey Straub","p2":"Kay","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-20","date":"2026-09-16","type":"Closed Business","p1":"Aubrey Straub","p2":"Maurissa","p3":"Brian Arao","jobSize":"Medium","notes":"","value":"","seeded":true,"r2":"Closer","r3":"Referrer (bonus)"},{"id":"seed-21","date":"2026-09-16","type":"Meeting Attendance","p1":"Aubrey Straub","p2":"Leo Blizzard","p3":"Amy Menendez","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-22","date":"2026-09-16","type":"Meeting Attendance","p1":"Abby Little","p2":"Arend S","p3":"Maurissa","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-23","date":"2026-09-16","type":"Meeting Attendance","p1":"Kay","p2":"Mischa","p3":"","jobSize":"","notes":"","value":"","seeded":true},{"id":"seed-24","date":"2026-09-16","type":"Testimonial Given","p1":"Abby Little","p2":"","p3":"","jobSize":"","notes":"Received 15 new clients as result of social shoutoutn from Mari","value":"","seeded":true}]};
-const LOCAL_STORE='kudos-tracker-v3', LEGACY_STORE='networking-kpi-v1', UPLOADED='kudos-tracker-local-uploaded', PASS_STORE='kudos-tracker-passcode';
+const LOCAL_STORE='kudos-tracker-v3', LEGACY_STORE='networking-kpi-v1', UPLOADED='kudos-tracker-local-uploaded', SESSION_STORE='kudos-tracker-session';
 const CB='Closed Business', KUDOS='Kudos', SLOTS=[1,2,3];
 const store={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}},del:k=>{try{localStorage.removeItem(k)}catch{}}};
 const clone=o=>JSON.parse(JSON.stringify(o));
 
-// mode: 'loading' | 'shared' (Supabase via /api) | 'local' (this browser only) | 'locked' (passcode needed)
+// mode: 'loading' | 'shared' (Supabase via /api) | 'local' (this browser only)
+//       | 'signedOut' (needs to sign in) | 'profile' (signed in, not linked to the roster yet)
 let mode='loading', setupReason='', state=clone(SEED), configVersion=0;
-let view='dashboard', editingId=null, historyFilter='';
+let view='dashboard', editingId=null, historyFilter='', authTab='signin', roster=null;
+let session=null, me=null; // me: { memberId, isOrganizer, email } from the server
+try{session=JSON.parse(store.get(SESSION_STORE)||'null')}catch{}
+const EMPTY={members:[],key:[],multipliers:{},refBonus:0,activities:[]};
+const myName=()=>state.members.find(m=>m.id===me?.memberId)?.name||'';
+const canManage=()=>mode!=='shared'||!!me?.isOrganizer; // browser-only mode has no accounts
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const num=x=>Number(x)||0;
@@ -245,20 +263,38 @@ const BADGES=[['Rainmaker','most business closed (as Closer), this quarter','clo
 function badges(rows){return BADGES.map(([name,desc,k])=>{const max=Math.max(0,...rows.map(r=>r[k]));return {name,desc,winner:max?rows.filter(r=>r[k]===max).map(r=>r.name).join(' & '):'No data yet',value:max}})}
 
 // ---------- Data: shared (Supabase through /api) or this browser only ----------
-async function api(method,path,body){
- const r=await fetch(path,{method,headers:{'content-type':'application/json','x-group-passcode':store.get(PASS_STORE)||''},body:body===undefined?undefined:JSON.stringify(body)});
+// Expiry is tracked on this device's clock (from expires_in), so a device with the wrong time still renews on schedule.
+function setSession(s){if(s&&!s.renew_at)s.renew_at=Date.now()+Math.max(60,(s.expires_in||3600)-120)*1000;session=s;if(s)store.set(SESSION_STORE,JSON.stringify(s));else store.del(SESSION_STORE)}
+// Access tokens last about an hour; renew with the refresh token. Concurrent callers share one renewal.
+let renewing=null;
+function renewSession(){
+ if(!session?.refresh_token)return Promise.resolve(false);
+ const old=session; // if they sign out while this is in flight, don't sign them back in
+ return renewing||=fetch('/api/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'refresh',refresh_token:old.refresh_token})})
+  .then(async r=>{const d=await r.json().catch(()=>({}));if(session!==old)return false;if(r.ok&&d.session){setSession(d.session);return true}if(r.status===401)setSession(null);return false})
+  .catch(()=>false).finally(()=>{renewing=null});
+}
+function signedOut(){setSession(null);me=null;state=clone(EMPTY);mode='signedOut';view='dashboard';authTab='signin';roster=null;render()}
+async function api(method,path,body,retry=true){
+ if(session&&Date.now()>(session.renew_at||0))await renewSession();
+ const headers={'content-type':'application/json'};if(session)headers.authorization='Bearer '+session.access_token;
+ const r=await fetch(path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
  const d=await r.json().catch(()=>({}));
- if(r.status===401){mode='locked';render();throw Object.assign(new Error('locked'),{status:401})}
- if(!r.ok)throw Object.assign(new Error(d.error||r.statusText||'Request failed'),{status:r.status});
+ if(r.status===401&&path!=='/api/auth'){
+  if(retry&&session&&await renewSession())return api(method,path,body,false);
+  signedOut();throw Object.assign(new Error('signed out'),{status:401});
+ }
+ if(r.status===403&&d.code==='profile_needed'){mode='profile';roster=null;render();throw Object.assign(new Error(d.error),{status:403,code:d.code})}
+ if(!r.ok)throw Object.assign(new Error(d.error||r.statusText||'Request failed'),{status:r.status,code:d.code});
  return d;
 }
-function applyRemote(d){state={...d.config,activities:d.activities};configVersion=d.version}
+function applyRemote(d){state={...d.config,activities:d.activities};configVersion=d.version;me=d.me}
 async function load(){
  try{
   if(location.protocol==='file:')throw new Error('Opened as a file, so there’s no server to save to.');
   applyRemote(await api('GET','/api/state'));mode='shared';
  }
- catch(e){if(e.status===401)return;setupReason=e.status?e.message:'The /api functions are not reachable from here.';loadLocal();mode='local'}
+ catch(e){if(e.status===401||e.code==='profile_needed')return;setupReason=e.status?e.message:'The /api functions are not reachable from here.';loadLocal();mode='local'}
  render();
 }
 function loadLocal(){
@@ -285,18 +321,22 @@ function strandedEntries(){
  const added=(local?.activities||[]).filter(a=>!a.seeded&&!a.legacy&&a.type&&a.p1).map(({id,legacy,seeded,...a})=>a);
  return [...legacyEntries(),...added];
 }
-async function refresh(force){
+// Fetch the latest data. Redraw read-only screens when something changed; redraw an editing screen only
+// right after opening it (fromNav) and only if nobody has started typing in it yet.
+async function refresh(force,fromNav){
  if(mode!=='shared')return;
  try{
-  const d=await api('GET','/api/state');
-  if(!force&&!['dashboard','history','leaderboard'].includes(view))return;
+  const shownView=view,d=await api('GET','/api/state');
+  if(view!==shownView)return;
+  const readOnly=['dashboard','history','leaderboard'].includes(view),untouched=fromNav&&!document.querySelector('main :focus');
+  if(!force&&!readOnly&&!untouched)return;
   const before=JSON.stringify([state,configVersion]);applyRemote(d);
   if(force||JSON.stringify([state,configVersion])!==before)render();
  }catch{}
 }
 async function guard(fn){
  try{await fn()}catch(e){
-  if(e.status===401)return;
+  if(e.status===401||e.code==='profile_needed')return;
   alert(e.status===409?'Someone else just changed these settings. Loading the latest version. Please make your change again.':'Could not save: '+e.message);
   await refresh(true);
  }
@@ -314,16 +354,20 @@ async function saveConfig(renames=[]){
  if(mode==='shared'){
   const {activities,...config}=state;
   const d=await api('PUT','/api/config',{config,version:configVersion,renames});
-  configVersion=d.version;
+  mergeConfig(d);
  }else persistLocal();
 }
 
+// The server returns the saved settings (with ids for new members); keep the same objects order so open inputs still line up.
+function mergeConfig(d){configVersion=d.version;Object.assign(state,d.config)}
+
 // ---------- Views ----------
-function go(v){view=v;editingId=null;render();window.scrollTo(0,0)}
-function nav(){const items=[['dashboard','Dashboard'],['log','Log Activity'],['kudos','Give Kudos'],['history','KPI Log'],['leaderboard','Leaderboard'],['key','Points Key'],['members','Members'],['readme','Read Me']];document.getElementById('nav').innerHTML=mode==='locked'?'':items.map(([v,l])=>`<button class="${view===v?'active':''}" onclick="go('${v}')">${l}</button>`).join('')}
+function go(v){view=v;editingId=null;render();window.scrollTo(0,0);refresh(false,true)}
+function nav(){const items=[['dashboard','Dashboard'],['log','Log Activity'],['kudos','Give Kudos'],['history','KPI Log'],['leaderboard','Leaderboard'],['key','Points Key'],['members','Members'],['readme','Read Me']];if(mode==='shared')items.push(['profile','My Profile']);document.getElementById('nav').innerHTML=['shared','local'].includes(mode)?items.map(([v,l])=>`<button class="${view===v?'active':''}" onclick="go('${v}')">${l}</button>`).join(''):''}
 function banner(){
  const el=document.getElementById('banner'),pill=document.getElementById('mode');
- const label=mode==='shared'?'Shared with the group':mode==='local'?'Saved in this browser only':mode==='locked'?'Locked':'Loading…';
+ const label=mode==='shared'?'Shared with the group':mode==='local'?'Saved in this browser only':mode==='loading'?'Loading…':'Signed out';
+ document.getElementById('who').innerHTML=mode==='shared'||mode==='profile'?`<button class="secondary small" onclick="signOut()" title="Sign out${me?.email?' of '+esc(me.email):''}">Sign out</button>`:'';
  pill.className='pill'+(mode==='shared'?' shared':mode==='local'?' local':'');pill.title=label;pill.innerHTML=`<span>${label}</span>`;
  let html='';
  if(mode==='local')html=`<div class="notice warn"><b>The shared database isn't connected yet.</b> Entries you add are saved only in this browser, and nobody else will see them. <span class="hint">${esc(setupReason)}</span></div>`;
@@ -361,7 +405,7 @@ function slotPoints(c,i){if(c.type===CB)return i===1?'goal-based points':i===2?`
 function refreshRoles(){
  const c=cfg(val('type')),box=document.getElementById('rolefields');
  const a=editingId?state.activities.find(x=>x.id===editingId):null;
- const cur=i=>document.getElementById('p'+i)?.value??a?.['p'+i]??'';
+ const cur=i=>document.getElementById('p'+i)?.value??(a?a['p'+i]:i===1?myName():'')??'';
  if(!c){box.innerHTML='';return}
  const sizes=Object.keys(state.multipliers),size=document.getElementById('jobSize')?.value??(a?a.jobSize:'Medium');
  box.innerHTML=SLOTS.filter(i=>c['role'+i]||cur(i)).map(i=>`<div class="field"><label for="p${i}">${esc(c['role'+i]||'Person '+i)}${i>1?' <span class="hint">(optional)</span>':''} <span class="hint">· ${slotPoints(c,i)}</span></label><select id="p${i}">${optMembers(cur(i))}</select></div>`).join('')
@@ -379,7 +423,7 @@ async function submitActivity(){
  await guard(async()=>{await saveActivity(a);go(old?'history':'dashboard')});
  if(btn.isConnected)btn.disabled=false;
 }
-function kudosForm(){const stars=num(cfg(KUDOS)?.p2);return `<section class="card form"><h2>Give Kudos</h2><p class="lead">Quick recognition. The giver gets no points; the receiver gets ${fmt(stars)} ${stars===1?'star':'stars'}.</p><div class="roles"><div class="field"><label for="kfrom">From</label><select id="kfrom">${optMembers()}</select></div><div class="field"><label for="kto">To</label><select id="kto">${optMembers()}</select></div></div><div class="field"><label for="knotes">What are they being recognized for?</label><textarea id="knotes" placeholder="Tell the group what they did…"></textarea></div><div class="field"><label for="kdate">Date</label><input id="kdate" type="date" value="${today()}"></div><button class="submit" id="submit" onclick="submitKudos()">Send kudos</button></section>`}
+function kudosForm(){const stars=num(cfg(KUDOS)?.p2);return `<section class="card form"><h2>Give Kudos</h2><p class="lead">Quick recognition. The giver gets no points; the receiver gets ${fmt(stars)} ${stars===1?'star':'stars'}.</p><div class="roles"><div class="field"><label for="kfrom">From</label><select id="kfrom">${optMembers(myName())}</select></div><div class="field"><label for="kto">To</label><select id="kto">${optMembers()}</select></div></div><div class="field"><label for="knotes">What are they being recognized for?</label><textarea id="knotes" placeholder="Tell the group what they did…"></textarea></div><div class="field"><label for="kdate">Date</label><input id="kdate" type="date" value="${today()}"></div><button class="submit" id="submit" onclick="submitKudos()">Send kudos</button></section>`}
 async function submitKudos(){
  const p1=val('kfrom'),p2=val('kto');
  if(!p1||!p2){alert('Choose both people.');return}
@@ -414,12 +458,20 @@ function leaderboardView(){
 }
 const LOCKED_TYPES=[CB,KUDOS]; // the app's scoring and Kudos form look these up by name
 function keyView(){
+ if(!canManage())return keyReadOnly();
  const numIn=(i,f)=>`<input type="number" step="0.5" value="${esc(state.key[i][f])}" onchange="setKey(${i},'${f}',this)" aria-label="${f}">`;
  const txtIn=(i,f,extra='')=>`<input value="${esc(state.key[i][f])}" onchange="setKey(${i},'${f}',this)" aria-label="${f}" ${extra}>`;
  return `<section class="card"><h2>KPI Points Key</h2><p class="hint">The point value and role label for each person slot. Changes apply to every entry in the KPI Log, past and future, just like editing the spreadsheet.</p><div class="tblwrap"><table class="tbl"><thead><tr><th>KPI Type</th><th>Points (P1)</th><th>Role (P1)</th><th>Points (P2)</th><th>Role (P2)</th><th>Points (P3)</th><th>Role (P3)</th><th>Description</th><th></th></tr></thead><tbody>
  ${state.key.map((k,i)=>{const cb=k.type===CB,locked=LOCKED_TYPES.includes(k.type);return `<tr><td>${txtIn(i,'type',locked?'readonly title="Used by the app’s scoring, so it can’t be renamed"':'')}</td><td>${cb?esc(k.p1):numIn(i,'p1')}</td><td>${txtIn(i,'role1')}</td><td>${cb?esc(k.p2):numIn(i,'p2')}</td><td>${txtIn(i,'role2')}</td><td>${numIn(i,'p3')}</td><td>${txtIn(i,'role3')}</td><td><textarea onchange="setKey(${i},'description',this)" aria-label="description">${esc(k.description)}</textarea></td><td>${locked?'':`<button class="secondary small danger" onclick="removeType(${i})">Remove</button>`}</td></tr>`}).join('')}
  </tbody></table></div><button class="secondary" style="margin-top:12px" onclick="addType()">Add activity type</button></section>
  <section class="card"><h2>Closed Business Settings</h2><div style="max-width:360px">${Object.entries(state.multipliers).map(([k,v])=>`<div class="settingrow"><label>${esc(k)}</label><input type="number" step="0.1" value="${esc(v)}" data-size="${esc(k)}" onchange="setMultiplier(this)"></div>`).join('')}<div class="settingrow"><label>Referrer Bonus %</label><input type="number" step="5" value="${fmt(num(state.refBonus)*100)}" onchange="setRefBonus(this)"></div></div><p class="hint">Closer points = ROUND((100 / their Annual Goal) × Job Size Multiplier, 2). Referrer bonus = ROUND(Closer points × Referrer Bonus %, 2).</p></section>`;
+}
+function keyReadOnly(){
+ const pts=(k,i)=>k.type===CB?esc(k['p'+i]):fmt(num(k['p'+i]));
+ return `<section class="card"><h2>KPI Points Key</h2><p class="hint">The point value and role label for each person slot. Organizers can change these.</p><div class="tblwrap"><table class="tbl"><thead><tr><th>KPI Type</th><th>Points (P1)</th><th>Role (P1)</th><th>Points (P2)</th><th>Role (P2)</th><th>Points (P3)</th><th>Role (P3)</th><th>Description</th></tr></thead><tbody>
+ ${state.key.map(k=>`<tr><td><b>${esc(k.type)}</b></td><td>${pts(k,1)}</td><td>${esc(k.role1)}</td><td>${pts(k,2)}</td><td>${esc(k.role2)}</td><td>${pts(k,3)}</td><td>${esc(k.role3)}</td><td class="wrap">${esc(k.description)}</td></tr>`).join('')}
+ </tbody></table></div></section>
+ <section class="card"><h2>Closed Business Settings</h2><div style="max-width:360px">${Object.entries(state.multipliers).map(([k,v])=>`<div class="settingrow"><span>${esc(k)}</span><b>${fmt(v)}x</b></div>`).join('')}<div class="settingrow"><span>Referrer Bonus</span><b>${fmt(num(state.refBonus)*100)}%</b></div></div><p class="hint">Closer points = ROUND((100 / their Annual Goal) × Job Size Multiplier, 2). Referrer bonus = ROUND(Closer points × Referrer Bonus %, 2).</p></section>`;
 }
 async function setKey(i,f,el){
  const k=state.key[i],before=k[f];
@@ -443,12 +495,40 @@ async function removeType(i){
 async function setMultiplier(el){state.multipliers[el.dataset.size]=num(el.value);await guard(saveConfig)}
 async function setRefBonus(el){state.refBonus=num(el.value)/100;await guard(saveConfig)}
 function membersView(){
- return `<div class="admin-grid"><section class="card"><h2>Members & Annual Goals</h2><p class="hint">Annual Goal = how many clients or closes that person is aiming for this year. It sets their personal Closed Business points (100 ÷ goal). A blank goal counts as 100.</p>
- ${state.members.map((m,i)=>`<div class="memberedit"><input value="${esc(m.name)}" aria-label="Name" onchange="renameMember(${i},this)"><input type="number" min="1" value="${esc(m.goal??'')}" aria-label="Annual goal" onchange="setGoal(${i},this)"><button class="secondary small danger" onclick="removeMember(${i})">Remove</button></div>`).join('')}
- <div class="memberedit" style="margin-top:16px"><input id="newName" placeholder="New member’s name"><input id="newGoal" type="number" min="1" value="24" aria-label="Annual goal"><button class="secondary small" onclick="addMember()">Add</button></div></section>
- <section class="card"><h2>Data</h2>${mode==='shared'?'<p>Everyone in the group sees and edits the same data. Changes save as soon as you make them.</p>':'<p>Data is saved only in this browser.</p>'}
+ const shared=mode==='shared';
+ const data=`<section class="card"><h2>Data</h2>${shared?'<p>Everyone in the group sees the same data. Changes save as soon as you make them.</p>':'<p>Data is saved only in this browser.</p>'}
  <button class="secondary" onclick="exportData()">Export backup</button>${mode==='local'?` <label class="secondary">Import backup<input type="file" accept="application/json" hidden onchange="importData(this)"></label> <button class="secondary danger" onclick="resetData()">Reset to spreadsheet data</button>`:''}
- <p class="hint">Removing a member works like removing them from the spreadsheet’s Lists tab: their past entries stay in the KPI Log but no longer count toward the leaderboard.</p></section></div>`;
+ <p class="hint">Removing a member works like removing them from the spreadsheet’s Lists tab: their past entries stay in the KPI Log but no longer count toward the leaderboard.</p></section>`;
+ const intro=`<p class="hint">Annual Goal = how many clients or closes that person is aiming for this year. It sets their personal Closed Business points (100 ÷ goal). A blank goal counts as 100.</p>`;
+ const role=m=>`<span class="role ${m.role==='organizer'?'organizer':''}">${m.role==='organizer'?'Organizer':'Member'}</span>`;
+ const acct=m=>m.claimed?'<span class="acct on">Account linked</span>':'<span class="acct">No account yet</span>';
+ if(!canManage())return `<div class="admin-grid"><section class="card"><h2>Members & Annual Goals</h2>${intro}<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th class="num">Annual Goal</th><th>Role</th><th>Account</th></tr></thead><tbody>
+ ${state.members.map(m=>`<tr><td><b>${esc(m.name)}</b>${m.id===me?.memberId?' <span class="hint">(you)</span>':''}</td><td class="num">${m.goal==null?'':fmt(m.goal)}</td><td>${role(m)}</td><td>${acct(m)}</td></tr>`).join('')}
+ </tbody></table></div><p class="hint">Organizers manage the roster. To change your own name or goal, go to <a href="#" onclick="go('profile');return false">My Profile</a>.</p></section>${data}</div>`;
+ if(!shared)return `<div class="admin-grid"><section class="card"><h2>Members & Annual Goals</h2>${intro}
+ ${state.members.map((m,i)=>`<div class="memberedit"><input value="${esc(m.name)}" aria-label="Name" onchange="renameMember(${i},this)"><input type="number" min="1" value="${esc(m.goal??'')}" aria-label="Annual goal" onchange="setGoal(${i},this)"><button class="secondary small danger" onclick="removeMember(${i})">Remove</button></div>`).join('')}
+ <div class="memberedit" style="margin-top:16px"><input id="newName" placeholder="New member’s name"><input id="newGoal" type="number" min="1" value="24" aria-label="Annual goal"><button class="secondary small" onclick="addMember()">Add</button></div></section>${data}</div>`;
+ return `<section class="card"><h2>Members & Annual Goals</h2>${intro}<div class="tblwrap"><table class="tbl"><thead><tr><th>Name</th><th>Annual Goal</th><th>Role</th><th>Account</th><th></th></tr></thead><tbody>
+ ${state.members.map((m,i)=>`<tr><td><input class="name" value="${esc(m.name)}" aria-label="Name" onchange="renameMember(${i},this)"></td><td><input type="number" min="1" value="${esc(m.goal??'')}" aria-label="Annual goal" onchange="setGoal(${i},this)"></td><td><select aria-label="Role" onchange="setRole(${i},this)"><option value="member">Member</option><option value="organizer" ${m.role==='organizer'?'selected':''}>Organizer</option></select></td><td>${acct(m)}${m.id===me?.memberId?' <span class="hint">(you)</span>':''}</td><td><div class="row-actions">${m.claimed&&m.id!==me?.memberId?`<button class="secondary small" onclick="resetPassword(${i})">Set temporary password</button><button class="secondary small danger" onclick="removeAccount(${i})">Remove account</button>`:''}${m.id===me?.memberId?'':`<button class="secondary small danger" onclick="removeMember(${i})">Remove from roster</button>`}</div></td></tr>`).join('')}
+ </tbody></table></div>
+ <div class="memberedit" style="margin-top:16px;max-width:560px"><input id="newName" placeholder="New member’s name"><input id="newGoal" type="number" min="1" value="24" aria-label="Annual goal"><button class="secondary small" onclick="addMember()">Add</button></div>
+ <p class="hint">New members can also add themselves when they create an account. Organizers can change the Points Key and the roster; everyone can log activity.</p></section>${data}`;
+}
+async function setRole(i,el){
+ const before=state.members[i].role;state.members[i].role=el.value;
+ await guard(async()=>{try{await saveConfig()}catch(e){state.members[i].role=before;el.value=before;throw e}});
+}
+async function resetPassword(i){
+ const m=state.members[i];
+ const pw=prompt(`Set a temporary password for ${m.name} (at least 8 characters).\n\nShare it with them privately. They can change it in My Profile.`);
+ if(pw==null)return;
+ if(pw.length<8){alert('Use at least 8 characters.');return}
+ await guard(async()=>{await api('POST','/api/admin',{action:'resetPassword',memberId:m.id,password:pw});alert(`Done. ${m.name} can now sign in with that password.`)});
+}
+async function removeAccount(i){
+ const m=state.members[i];
+ if(!confirm(`Remove ${m.name}’s account?\n\nThey’ll be signed out and their roster name becomes unclaimed. Their entries stay. They can create a new account with the group passcode.`))return;
+ await guard(async()=>{mergeConfig(await api('POST','/api/admin',{action:'removeAccount',memberId:m.id}));render()});
 }
 async function renameMember(i,el){
  const before=state.members[i].name,name=el.value.trim();
@@ -463,7 +543,7 @@ async function addMember(){
  const name=val('newName'),g=Number(val('newGoal'));
  if(!name){alert('Enter a name.');return}
  if(member(name)){alert('There’s already a member with that name.');return}
- state.members.push({name,goal:g>0?g:null});await guard(saveConfig);render();
+ state.members.push({name,goal:g>0?g:null,role:'member'});await guard(saveConfig);render();
 }
 async function removeMember(i){
  const n=state.members[i].name;
@@ -486,6 +566,7 @@ function readme(){
  return `<section class="card readme"><p class="eyebrow">How it works</p><h2>Read Me</h2>
  <h3>How this app is organized</h3><ul>
  <li><b>Members:</b> the roster and each person’s Annual Goal (closes per year). Every other screen reads from this list.</li>
+ <li><b>My Profile:</b> your public name, annual goal, and password.</li>
  <li><b>Points Key:</b> the point value and role label for each activity, plus the Closed Business Settings (job-size multipliers and the referrer bonus).</li>
  <li><b>Log Activity</b> and <b>Give Kudos:</b> add entries to one shared log. Points and role labels fill in automatically.</li>
  <li><b>KPI Log:</b> every entry, with edit and delete.</li>
@@ -499,12 +580,78 @@ function readme(){
  <li><b>Referral Given:</b> Person 1 is the Referrer (gets points). Person 2 is the Recipient: no points, but it’s on record, so referrals received show on the Leaderboard.</li>
  <li><b>Closed Business:</b> Person 1 is the Closer. Person 2 is the Referrer whose referral led to it. This powers the “who’s closing leads” and “whose leads are closing” stats.</li>
  <li><b>Kudos:</b> Person 1 is the giver (no points). Person 2 is the receiver (gets the star).</li></ul>
+ <h3>Accounts</h3><p>Everyone signs in with their own account. To join, create an account with the group passcode, then pick your name from the roster (so you keep your history) or add yourself. Anyone signed in can log activity for anyone, like the spreadsheet. Organizers also manage the Points Key and the roster. Forgot your password? An organizer can set a temporary one for you.</p>
  <h3>Value ($)</h3><p>Optional and not used in scoring. The group decided not to track dollar amounts for now.</p>
  <h3>The 4 auto-badges</h3><ul>${BADGES.map(([n,d])=>`<li><b>${n}:</b> ${d}.</li>`).join('')}</ul><p>When people tie, the badge lists all of them.</p>
  <h3>Where the data lives</h3><p>${mode==='shared'?'Everything is saved to the group’s shared database, so everyone sees the same log and leaderboard.':'The shared database isn’t connected yet, so everything is saved only in this browser.'}</p></section>`;
 }
-function lockedView(){return `<section class="card form locked"><p class="eyebrow" style="color:var(--peri-200)">Members only</p><h2>Enter the group passcode</h2><p class="lead">Ask a group organizer for the passcode. You only need to enter it once on this device.</p><div class="field"><label for="pass">Passcode</label><input id="pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlock()"></div><button class="submit" onclick="unlock()">Unlock</button></section>`}
-function unlock(){store.set(PASS_STORE,val('pass'));mode='loading';render();load()}
+function authView(){
+ const tabs=`<div class="toggle" role="tablist"><button role="tab" aria-selected="${authTab==='signin'}" class="${authTab==='signin'?'active':''}" onclick="authTab='signin';render()">Sign in</button><button role="tab" aria-selected="${authTab==='signup'}" class="${authTab==='signup'?'active':''}" onclick="authTab='signup';roster=null;render()">Create account</button></div>`;
+ const creds=(pw)=>`<div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email"></div><div class="field"><label for="password">Password${pw==='new'?' <span class="hint">(at least 8 characters)</span>':''}</label><input id="password" type="password" autocomplete="${pw}-password"${pw==='current'?` onkeydown="if(event.key==='Enter')signIn()"`:''}></div>`;
+ if(authTab==='signin')return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Members only</p><h2>Sign in</h2>${tabs}${creds('current')}<button class="submit" id="submit" onclick="signIn()">Sign in</button><p class="hint">Forgot your password? Ask an organizer to set a temporary one for you.</p></section>`;
+ return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Join the tracker</p><h2>Create your account</h2>${tabs}${creds('new')}${profileFields()}<button class="submit" id="submit" onclick="signUp()">Create account</button></section>`;
+}
+function profileFields(){return `<div class="field"><label for="passcode">Group passcode</label><input id="passcode" type="password" autocomplete="off" onchange="loadRoster()"><div class="hint">Ask an organizer for it.</div></div><div id="rosterfields">${rosterFields()}</div>`}
+function rosterFields(){
+ if(!roster)return '';
+ return `<div class="field"><label for="claim">Who are you?</label><select id="claim" onchange="pickClaim()"><option value="">I’m not on the roster yet</option>${roster.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}</select><div class="hint">If your name is already on the roster, pick it so you keep your history.</div></div>
+ <div class="field"><label for="pname">Public name</label><input id="pname" autocomplete="name"><div class="hint">How your name appears on the leaderboard and in the log.</div></div>
+ <div class="field"><label for="pgoal">Annual goal <span class="hint">(clients or closes this year)</span></label><input id="pgoal" type="number" min="1" value="24"><div class="hint">Sets your Closed Business points: 100 ÷ your goal for each close.</div></div>`;
+}
+async function loadRoster(){
+ const p=val('passcode'),box=document.getElementById('rosterfields');if(!p||!box)return false;
+ try{roster=(await api('POST','/api/auth',{action:'roster',passcode:p})).members;box.innerHTML=rosterFields();return true}
+ catch(e){roster=null;box.innerHTML=`<div class="notice warn">${esc(e.message)}</div>`;return false}
+}
+function pickClaim(){const m=roster.find(x=>x.id===val('claim'));document.getElementById('pname').value=m?m.name:'';document.getElementById('pgoal').value=m?.goal??24}
+async function busy(fn){
+ const btn=document.getElementById('submit');if(btn)btn.disabled=true;
+ try{await fn()}catch(e){if(e.message!=='signed out'&&e.code!=='profile_needed')alert(e.message)}
+ finally{const b=document.getElementById('submit');if(b)b.disabled=false}
+}
+function signIn(){
+ const email=val('email'),password=document.getElementById('password').value;
+ if(!email||!password){alert('Enter your email and password.');return}
+ return busy(async()=>{setSession((await api('POST','/api/auth',{action:'login',email,password})).session);mode='loading';render();await load()});
+}
+async function profilePayload(){
+ if(!roster&&!await loadRoster())return null; // passcode not checked yet
+ const name=val('pname');if(!name){alert('Enter your public name.');document.getElementById('pname')?.focus();return null}
+ return {passcode:val('passcode'),claimId:val('claim')||null,name,goal:val('pgoal')};
+}
+function signUp(){
+ const email=val('email'),password=document.getElementById('password').value;
+ if(!email||password.length<8){alert('Enter your email and a password with at least 8 characters.');return}
+ return busy(async()=>{const p=await profilePayload();if(!p)return;setSession((await api('POST','/api/auth',{action:'signup',email,password,...p})).session);mode='loading';view='dashboard';render();await load()});
+}
+function profileSetupView(){return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Almost there</p><h2>Finish your profile</h2><p class="lead">Your account isn’t linked to the roster yet.</p>${profileFields()}<button class="submit" id="submit" onclick="claimProfile()">Save profile</button></section>`}
+function claimProfile(){return busy(async()=>{const p=await profilePayload();if(!p)return;await api('POST','/api/profile',p);mode='loading';render();await load()})}
+function profileView(){
+ const m=state.members.find(x=>x.id===me?.memberId)||{};
+ return `<div class="admin-grid"><section class="card"><p class="eyebrow">My profile</p><h2>${esc(m.name)}</h2>
+ <div class="field"><label for="pname">Public name</label><input id="pname" value="${esc(m.name)}" autocomplete="name"><div class="hint">How your name appears on the leaderboard. Changing it updates your past entries too.</div></div>
+ <div class="field"><label for="pgoal">Annual goal <span class="hint">(clients or closes this year)</span></label><input id="pgoal" type="number" min="1" value="${esc(m.goal??'')}"><div class="hint">Each close is worth 100 ÷ your goal points${m.goal?`, which is ${fmt(round2(100/m.goal))} for a Medium job`:''}. A blank goal counts as 100.</div></div>
+ <button class="submit" id="submit" onclick="saveProfile()">Save profile</button><p class="status" id="pstatus" role="status"></p></section>
+ <section class="card"><h2>Account</h2><p>Signed in as <b>${esc(me?.email)}</b>${me?.isOrganizer?' · <span class="role organizer">Organizer</span>':''}</p>
+ <div class="field"><label for="curpw">Current password</label><input id="curpw" type="password" autocomplete="current-password"></div>
+ <div class="field"><label for="newpw">New password <span class="hint">(at least 8 characters)</span></label><input id="newpw" type="password" autocomplete="new-password"></div>
+ <button class="secondary" onclick="changePassword()">Change password</button> <button class="secondary danger" onclick="signOut()">Sign out</button><p class="status" id="pwstatus" role="status"></p></section></div>`;
+}
+function saveProfile(){
+ const name=val('pname');if(!name){alert('Enter your public name.');return}
+ return busy(async()=>{mergeConfig(await api('PUT','/api/profile',{name,goal:val('pgoal')}));await refresh(true);document.getElementById('pstatus').textContent='Saved.'});
+}
+async function changePassword(){
+ const current=document.getElementById('curpw').value,next=document.getElementById('newpw').value;
+ if(next.length<8){alert('Use a new password with at least 8 characters.');return}
+ try{await api('POST','/api/auth',{action:'password',current,next});document.getElementById('curpw').value=document.getElementById('newpw').value='';document.getElementById('pwstatus').textContent='Password changed.'}
+ catch(e){alert(e.message)}
+}
+function signOut(){
+ const t=session?.access_token;
+ if(t)fetch('/api/auth',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+t},body:JSON.stringify({action:'logout'})}).catch(()=>{});
+ signedOut();
+}
 // The landing page's hero animation: drifting gold nodes, linked when they're close.
 let netRaf=0;
 function startNetwork(){
@@ -533,8 +680,10 @@ function render(){
  nav();banner();
  const m=document.getElementById('main');
  if(mode==='loading'){m.innerHTML='<div class="empty">Loading…</div>';return}
- if(mode==='locked'){m.innerHTML=lockedView();setTimeout(()=>document.getElementById('pass')?.focus());return}
- m.innerHTML=({dashboard,log:logForm,kudos:kudosForm,history,leaderboard:leaderboardView,key:keyView,members:membersView,readme})[view]();
+ if(mode==='signedOut'){m.innerHTML=authView();setTimeout(()=>document.getElementById('email')?.focus());return}
+ if(mode==='profile'){m.innerHTML=profileSetupView();setTimeout(()=>document.getElementById('passcode')?.focus());return}
+ if(view==='profile'&&mode!=='shared')view='dashboard';
+ m.innerHTML=({dashboard,log:logForm,kudos:kudosForm,history,leaderboard:leaderboardView,key:keyView,members:membersView,readme,profile:profileView})[view]();
  if(view==='log')refreshRoles();
  startNetwork();
 }

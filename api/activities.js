@@ -1,6 +1,7 @@
 // POST /api/activities          — add one entry (or an array of entries)
 // PUT /api/activities?id=…      — replace an entry
 // DELETE /api/activities?id=…   — delete an entry
+// Any signed-in member can log, edit, or delete entries for anyone, like the spreadsheet.
 const { db, route, toApp, toRow, HttpError } = require('./_lib');
 
 const RETURN = 'return=representation';

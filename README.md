@@ -12,6 +12,12 @@ A web version of the **Networking Group KPI Tracker** spreadsheet (`Networking_G
 
 If the database isn't reachable, the app still works, but entries are saved only in that person's browser, and a banner says so. Once the database is connected, the app offers to add those entries to the shared log.
 
+## Design
+
+The look matches the Network Effect landing page (`Blizzard-Branding/networkeffect`, live at networkeffectsac.com). The tracker uses the same color tokens on `:root`, Jost for headings and Inter for body text from Google Fonts, the same buttons, and the same animated network behind the dashboard hero. The animation stops under `prefers-reduced-motion` and when the tab is hidden. To change a brand color, update it in both repositories.
+
+Following the landing page's house style, the copy uses no em dashes.
+
 ## Set up the shared database
 
 1. In Supabase, open the project that's connected to Vercel, go to **SQL Editor**, paste the contents of `supabase/schema.sql`, and select **Run**. Running it again is safe: it never overwrites or duplicates existing data.

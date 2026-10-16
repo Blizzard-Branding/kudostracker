@@ -176,6 +176,9 @@ input::placeholder,textarea::placeholder{color:#7D879A}
 .tbl select{padding:8px 10px;border:1px solid rgba(191,205,225,.2);border-radius:9px;background:var(--navy-900);color:var(--ink)}
 .row-actions{display:flex;flex-wrap:wrap;gap:6px;min-width:240px}
 .tbl input.name{min-width:190px}
+.code-entry{margin-top:18px;border-top:1px solid rgba(252,252,249,.18);padding-top:16px}
+.code-entry summary{cursor:pointer;font-weight:600;margin-bottom:12px}
+.auth a{color:var(--white-50)}
 .status{min-height:1.4em;margin:12px 0 0;font-size:.9rem;color:var(--green-400)}
 
 @media (max-width:860px){.grid,.admin-grid{grid-template-columns:1fr}}
@@ -212,6 +215,14 @@ let mode='loading', setupReason='', state=clone(SEED), configVersion=0;
 let view='dashboard', editingId=null, historyFilter='', authTab='signin', roster=null;
 let session=null, me=null; // me: { memberId, isOrganizer, email } from the server
 try{session=JSON.parse(store.get(SESSION_STORE)||'null')}catch{}
+// A password reset link from Supabase lands here with #access_token=…&type=recovery, or #error_code=… if it expired.
+let features=null, recoveryToken=null, authNotice='', resetEmail='', resetSent=false;
+{
+ const q=new URLSearchParams(location.hash.slice(1)||location.search.slice(1));
+ if(q.get('type')==='recovery'&&q.get('access_token'))recoveryToken=q.get('access_token');
+ else if(q.get('error_code')||q.get('error'))authNotice=q.get('error_code')==='otp_expired'?'That reset link has expired or was already used. Request a new one.':(q.get('error_description')||'That link didn’t work. Request a new one.');
+ if(recoveryToken||authNotice)history.replaceState(null,'',location.pathname); // keep the token out of history and bookmarks
+}
 const EMPTY={members:[],key:[],multipliers:{},refBonus:0,activities:[]};
 const myName=()=>state.members.find(m=>m.id===me?.memberId)?.name||'';
 const canManage=()=>mode!=='shared'||!!me?.isOrganizer; // browser-only mode has no accounts
@@ -274,7 +285,7 @@ function renewSession(){
   .then(async r=>{const d=await r.json().catch(()=>({}));if(session!==old)return false;if(r.ok&&d.session){setSession(d.session);return true}if(r.status===401)setSession(null);return false})
   .catch(()=>false).finally(()=>{renewing=null});
 }
-function signedOut(){setSession(null);me=null;state=clone(EMPTY);mode='signedOut';view='dashboard';authTab='signin';roster=null;render()}
+function signedOut(){setSession(null);me=null;state=clone(EMPTY);mode='signedOut';view='dashboard';authTab=authNotice||authTab==='forgot'?'forgot':'signin';roster=null;render()}
 async function api(method,path,body,retry=true){
  if(session&&Date.now()>(session.renew_at||0))await renewSession();
  const headers={'content-type':'application/json'};if(session)headers.authorization='Bearer '+session.access_token;
@@ -292,7 +303,7 @@ function applyRemote(d){state={...d.config,activities:d.activities};configVersio
 async function load(){
  try{
   if(location.protocol==='file:')throw new Error('Opened as a file, so there’s no server to save to.');
-  applyRemote(await api('GET','/api/state'));mode='shared';
+  applyRemote(await api('GET','/api/state'));mode='shared';authTab='signin';
  }
  catch(e){if(e.status===401||e.code==='profile_needed')return;setupReason=e.status?e.message:'The /api functions are not reachable from here.';loadLocal();mode='local'}
  render();
@@ -366,7 +377,7 @@ function go(v){view=v;editingId=null;render();window.scrollTo(0,0);refresh(false
 function nav(){const items=[['dashboard','Dashboard'],['log','Log Activity'],['kudos','Give Kudos'],['history','KPI Log'],['leaderboard','Leaderboard'],['key','Points Key'],['members','Members'],['readme','Read Me']];if(mode==='shared')items.push(['profile','My Profile']);document.getElementById('nav').innerHTML=['shared','local'].includes(mode)?items.map(([v,l])=>`<button class="${view===v?'active':''}" onclick="go('${v}')">${l}</button>`).join(''):''}
 function banner(){
  const el=document.getElementById('banner'),pill=document.getElementById('mode');
- const label=mode==='shared'?'Shared with the group':mode==='local'?'Saved in this browser only':mode==='loading'?'Loading…':'Signed out';
+ const label=mode==='shared'?'Shared with the group':mode==='local'?'Saved in this browser only':mode==='loading'?'Loading…':mode==='recovery'?'Resetting password':'Signed out';
  document.getElementById('who').innerHTML=mode==='shared'||mode==='profile'?`<button class="secondary small" onclick="signOut()" title="Sign out${me?.email?' of '+esc(me.email):''}">Sign out</button>`:'';
  pill.className='pill'+(mode==='shared'?' shared':mode==='local'?' local':'');pill.title=label;pill.innerHTML=`<span>${label}</span>`;
  let html='';
@@ -432,7 +443,7 @@ async function submitKudos(){
  await guard(async()=>{await saveActivity({date:val('kdate'),type:KUDOS,p1,p2,p3:'',jobSize:'',notes:val('knotes'),value:''});go('dashboard')});
  const btn=document.getElementById('submit');if(btn)btn.disabled=false;
 }
-function history(){
+function historyView(){
  const rows=byNewest(state.activities).filter(a=>!historyFilter||SLOTS.some(i=>a['p'+i]===historyFilter));
  const person=n=>n?`${esc(n)}${onRoster(n)?'':' <span class="tag">(not on roster)</span>'}`:'';
  return `<section class="card"><h2>KPI Log</h2><div class="toolbar"><label for="hf">Show</label><select id="hf" onchange="historyFilter=this.value;render()"><option value="">Everyone</option>${state.members.map(m=>`<option value="${esc(m.name)}" ${m.name===historyFilter?'selected':''}>${esc(m.name)}</option>`).join('')}</select><span class="hint">${rows.length} ${rows.length===1?'entry':'entries'} · newest first</span></div>
@@ -580,7 +591,7 @@ function readme(){
  <li><b>Referral Given:</b> Person 1 is the Referrer (gets points). Person 2 is the Recipient: no points, but it’s on record, so referrals received show on the Leaderboard.</li>
  <li><b>Closed Business:</b> Person 1 is the Closer. Person 2 is the Referrer whose referral led to it. This powers the “who’s closing leads” and “whose leads are closing” stats.</li>
  <li><b>Kudos:</b> Person 1 is the giver (no points). Person 2 is the receiver (gets the star).</li></ul>
- <h3>Accounts</h3><p>Everyone signs in with their own account. To join, create an account with the group passcode, then pick your name from the roster (so you keep your history) or add yourself. Anyone signed in can log activity for anyone, like the spreadsheet. Organizers also manage the Points Key and the roster. Forgot your password? An organizer can set a temporary one for you.</p>
+ <h3>Accounts</h3><p>Everyone signs in with their own account. To join, create an account with the group passcode, then pick your name from the roster (so you keep your history) or add yourself. Anyone signed in can log activity for anyone, like the spreadsheet. Organizers also manage the Points Key and the roster. Forgot your password? Use <b>Forgot your password?</b> on the sign-in screen if your group has turned on reset emails, or ask an organizer to set a temporary one.</p>
  <h3>Value ($)</h3><p>Optional and not used in scoring. The group decided not to track dollar amounts for now.</p>
  <h3>The 4 auto-badges</h3><ul>${BADGES.map(([n,d])=>`<li><b>${n}:</b> ${d}.</li>`).join('')}</ul><p>When people tie, the badge lists all of them.</p>
  <h3>Where the data lives</h3><p>${mode==='shared'?'Everything is saved to the group’s shared database, so everyone sees the same log and leaderboard.':'The shared database isn’t connected yet, so everything is saved only in this browser.'}</p></section>`;
@@ -588,8 +599,54 @@ function readme(){
 function authView(){
  const tabs=`<div class="toggle" role="tablist"><button role="tab" aria-selected="${authTab==='signin'}" class="${authTab==='signin'?'active':''}" onclick="authTab='signin';render()">Sign in</button><button role="tab" aria-selected="${authTab==='signup'}" class="${authTab==='signup'?'active':''}" onclick="authTab='signup';roster=null;render()">Create account</button></div>`;
  const creds=(pw)=>`<div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email"></div><div class="field"><label for="password">Password${pw==='new'?' <span class="hint">(at least 8 characters)</span>':''}</label><input id="password" type="password" autocomplete="${pw}-password"${pw==='current'?` onkeydown="if(event.key==='Enter')signIn()"`:''}></div>`;
- if(authTab==='signin')return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Members only</p><h2>Sign in</h2>${tabs}${creds('current')}<button class="submit" id="submit" onclick="signIn()">Sign in</button><p class="hint">Forgot your password? Ask an organizer to set a temporary one for you.</p></section>`;
+ if(authTab==='signin')return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Members only</p><h2>Sign in</h2>${tabs}${creds('current')}<button class="submit" id="submit" onclick="signIn()">Sign in</button><p class="hint" id="forgot">${forgotHint()}</p></section>`;
+ if(authTab==='forgot')return forgotView();
  return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Join the tracker</p><h2>Create your account</h2>${tabs}${creds('new')}${profileFields()}<button class="submit" id="submit" onclick="signUp()">Create account</button></section>`;
+}
+function forgotHint(){return features?.emailReset?`<a href="#" onclick="authTab='forgot';resetSent=false;render();return false">Forgot your password?</a>`:'Forgot your password? Ask an organizer to set a temporary one for you.'}
+async function loadFeatures(){
+ if(location.protocol==='file:'){features={};return}
+ try{features=await api('POST','/api/auth',{action:'features'})}catch{features={}}
+ const el=document.getElementById('forgot');if(el)el.innerHTML=forgotHint(); // update in place so typed text survives
+}
+const backToSignIn=`<p class="hint"><a href="#" onclick="authTab='signin';authNotice='';render();return false">Back to sign in</a></p>`;
+function forgotView(){
+ if(!features?.emailReset)return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Reset password</p><h2>Forgot your password?</h2>${authNotice?`<div class="notice warn">${esc(authNotice)}</div>`:''}<p class="lead">Ask an organizer to set a temporary password for you. You can change it under My Profile once you’re signed in.</p>${backToSignIn}</section>`;
+ return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Reset password</p><h2>Forgot your password?</h2>${authNotice?`<div class="notice warn">${esc(authNotice)}</div>`:''}
+ <p class="lead">Enter the email you signed up with. We’ll email you a link to set a new password.</p>
+ <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" value="${esc(resetEmail)}" onkeydown="if(event.key==='Enter')sendReset()"></div>
+ <button class="submit" id="submit" onclick="sendReset()">${resetSent?'Send another email':'Email me a reset link'}</button>
+ ${resetSent?`<div class="notice" style="margin-top:16px" role="status">If an account uses <b>${esc(resetEmail)}</b>, a reset email is on its way. The link works once and expires in an hour. Check your spam folder if it doesn’t arrive in a few minutes.</div>
+ <details class="code-entry"><summary>Got a code in the email instead?</summary>
+ <div class="field"><label for="rcode">Code from the email</label><input id="rcode" inputmode="numeric" autocomplete="one-time-code"></div>
+ <div class="field"><label for="rpw">New password <span class="hint">(at least 8 characters)</span></label><input id="rpw" type="password" autocomplete="new-password"></div>
+ <button class="secondary wide" onclick="resetWithCode()">Set new password</button></details>`:''}
+ ${backToSignIn}</section>`;
+}
+function sendReset(){
+ const email=val('email');if(!email){alert('Enter your email.');return}
+ return busy(async()=>{await api('POST','/api/auth',{action:'forgot',email});resetEmail=email;resetSent=true;authNotice='';render()});
+}
+async function finishReset(body){
+ const d=await api('POST','/api/auth',{action:'recover',...body});
+ recoveryToken=null;resetSent=false;setSession(d.session);mode='loading';view='dashboard';render();await load();
+}
+function resetWithCode(){
+ const code=val('rcode'),password=document.getElementById('rpw').value;
+ if(!code){alert('Enter the code from the email.');return}
+ if(password.length<8){alert('Use a new password with at least 8 characters.');return}
+ return busy(()=>finishReset({email:resetEmail,code,password}));
+}
+function recoveryView(){return `<section class="card form auth locked"><p class="eyebrow" style="color:var(--peri-200)">Reset password</p><h2>Set a new password</h2><p class="lead">Choose a new password for your account. You’ll be signed in, and signed out everywhere else.</p>
+ <div class="field"><label for="npw">New password <span class="hint">(at least 8 characters)</span></label><input id="npw" type="password" autocomplete="new-password"></div>
+ <div class="field"><label for="npw2">Confirm new password</label><input id="npw2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')setNewPassword()"></div>
+ <button class="submit" id="submit" onclick="setNewPassword()">Save new password</button>
+ <p class="hint"><a href="#" onclick="recoveryToken=null;authTab='forgot';resetSent=false;mode='loading';render();load();return false">Request a new link</a></p></section>`}
+function setNewPassword(){
+ const a=document.getElementById('npw').value,b=document.getElementById('npw2').value;
+ if(a.length<8){alert('Use a password with at least 8 characters.');return}
+ if(a!==b){alert('The two passwords don’t match.');return}
+ return busy(()=>finishReset({access_token:recoveryToken,password:a}));
 }
 function profileFields(){return `<div class="field"><label for="passcode">Group passcode</label><input id="passcode" type="password" autocomplete="off" onchange="loadRoster()"><div class="hint">Ask an organizer for it.</div></div><div id="rosterfields">${rosterFields()}</div>`}
 function rosterFields(){
@@ -680,14 +737,16 @@ function render(){
  nav();banner();
  const m=document.getElementById('main');
  if(mode==='loading'){m.innerHTML='<div class="empty">Loading…</div>';return}
+ if(mode==='recovery'){m.innerHTML=recoveryView();setTimeout(()=>document.getElementById('npw')?.focus());return}
  if(mode==='signedOut'){m.innerHTML=authView();setTimeout(()=>document.getElementById('email')?.focus());return}
  if(mode==='profile'){m.innerHTML=profileSetupView();setTimeout(()=>document.getElementById('passcode')?.focus());return}
  if(view==='profile'&&mode!=='shared')view='dashboard';
- m.innerHTML=({dashboard,log:logForm,kudos:kudosForm,history,leaderboard:leaderboardView,key:keyView,members:membersView,readme,profile:profileView})[view]();
+ m.innerHTML=({dashboard,log:logForm,kudos:kudosForm,history:historyView,leaderboard:leaderboardView,key:keyView,members:membersView,readme,profile:profileView})[view]();
  if(view==='log')refreshRoles();
  startNetwork();
 }
 window.addEventListener('focus',()=>refresh());
 setInterval(()=>{if(!document.hidden)refresh()},60000);
-render();load();
+loadFeatures();
+if(recoveryToken){mode='recovery';render()}else{render();load()}
 </script></body></html>
